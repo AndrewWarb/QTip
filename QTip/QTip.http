@@ -1,6 +1,41 @@
 @QTip_HostAddress = http://localhost:5263
 
-GET {{QTip_HostAddress}}/weatherforecast/
-Accept: application/json
+### Test PII Detection (Real-time highlighting)
+POST {{QTip_HostAddress}}/api/detect-pii
+Content-Type: application/json
+
+{
+  "text": "Contact user@email.com and admin@company.com for help"
+}
+
+###
+
+### Test Text Submission (Tokenization)
+POST {{QTip_HostAddress}}/api/submit
+Content-Type: application/json
+
+{
+  "text": "Contact user@email.com and admin@company.com for help"
+}
+
+###
+
+### Test Statistics
+GET {{QTip_HostAddress}}/api/stats
+
+###
+
+### Test Multiple Submissions
+POST {{QTip_HostAddress}}/api/submit
+Content-Type: application/json
+
+{
+  "text": "Send report to john@example.com and bob@test.org"
+}
+
+###
+
+### Check Updated Stats
+GET {{QTip_HostAddress}}/api/stats
 
 ###
