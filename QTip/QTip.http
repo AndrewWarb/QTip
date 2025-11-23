@@ -1,0 +1,6 @@
+@QTip_HostAddress = http://localhost:5263
+
+GET {{QTip_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
