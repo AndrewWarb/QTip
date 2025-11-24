@@ -9,7 +9,7 @@ export const useStatsStore = create<StatsState>((set) => ({
   totalPiiEmails: 0,
   fetchStats: async () => {
     try {
-      const res = await fetch('http://localhost:5263/api/stats');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/stats`);
       const data = await res.json();
       set({ totalPiiEmails: data.totalPiiEmails });
     } catch (error) {

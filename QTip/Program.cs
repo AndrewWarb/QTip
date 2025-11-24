@@ -22,6 +22,23 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Run database migrations automatically
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        Console.WriteLine("Running database migrations...");
+        await dbContext.Database.MigrateAsync();
+        Console.WriteLine("Database migrations completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database migration failed: {ex.Message}");
+        // Continue - it is possible the tables already exist and this caused a timeout.
+    }
+}
+
 if (app.Environment.IsDevelopment())
     app.UseSwagger().UseSwaggerUI();
 

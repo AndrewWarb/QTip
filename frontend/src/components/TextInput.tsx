@@ -29,7 +29,7 @@ export default function TextInput() {
     }
 
     try {
-      const response = await fetch('http://localhost:5263/api/detect-pii', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/detect-pii`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: inputText }),
@@ -57,7 +57,7 @@ export default function TextInput() {
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      await fetch('http://localhost:5263/api/submit', {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),

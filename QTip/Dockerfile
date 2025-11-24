@@ -17,7 +17,9 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./QTip.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-FROM base AS final
+FROM build AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN dotnet tool install --global dotnet-ef --version 10.0.0
+ENV PATH="$PATH:/root/.dotnet/tools"
 ENTRYPOINT ["dotnet", "QTip.dll"]
