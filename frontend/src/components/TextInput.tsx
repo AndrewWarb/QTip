@@ -14,9 +14,13 @@ interface PiiDetection {
 export default function TextInput() {
   const MAX_CHARACTERS = 500;
   const [text, setText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [detections, setDetections] = useState<PiiDetection[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const { fetchStats } = useStatsStore();
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number; visible: boolean } | null>(null);
 
   const detectPii = useCallback(async (inputText: string) => {
     if (!inputText.trim()) {
@@ -52,6 +56,7 @@ export default function TextInput() {
 
   const handleSubmit = async () => {
     try {
+      setIsSubmitting(true);
       await fetch('http://localhost:5263/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,6 +67,8 @@ export default function TextInput() {
       setDetections([]);
     } catch (error) {
       console.error('Failed to submit text:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,7 +82,7 @@ export default function TextInput() {
       // Add text before the detection
       result += text.slice(lastIndex, detection.startIndex);
       // Add highlighted detection with wavy underline (per spec)
-      result += `<span style="text-decoration: underline; text-decoration-style: wavy; text-decoration-color: #2f528c; text-decoration-thickness: 2px;" title="${detection.tooltip}">${detection.originalValue}</span>`;
+      result += `<span class="pii-highlight" data-tooltip="${detection.tooltip}" style="text-decoration: underline; text-decoration-style: wavy; text-decoration-color: #2f528c; text-decoration-thickness: 2px; position: relative;">${detection.originalValue}</span>`;
       lastIndex = detection.endIndex;
     });
 
@@ -84,12 +91,57 @@ export default function TextInput() {
     return result;
   };
 
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!wrapperRef.current || !highlightRef.current) {
+      setTooltip(null);
+      return;
+    }
+
+    const highlights = highlightRef.current.querySelectorAll<HTMLElement>('.pii-highlight');
+    if (!highlights.length) {
+      setTooltip(null);
+      return;
+    }
+
+    const wrapperRect = wrapperRef.current.getBoundingClientRect();
+
+    const pointerX = event.clientX;
+    const pointerY = event.clientY;
+    let found = false;
+
+    for (const span of highlights) {
+      const rect = span.getBoundingClientRect();
+      if (pointerX >= rect.left && pointerX <= rect.right && pointerY >= rect.top && pointerY <= rect.bottom) {
+        found = true;
+        setTooltip({
+          text: span.dataset.tooltip ?? 'PII – Email Address',
+          x: rect.left + rect.width / 2 - wrapperRect.left,
+          y: rect.top - wrapperRect.top - 6,
+          visible: true,
+        });
+        break;
+      }
+    }
+
+    if (!found) {
+      setTooltip((prev) =>
+        prev ? { ...prev, visible: false } : null
+      );
+    }
+  };
+
   return (
     <div className="p-4 flex flex-col items-center">
       <div className="mb-4 relative w-full max-w-2xl" style={{ lineHeight: 0 }}>
-        <div className="relative w-full rounded-2xl bg-white shadow-sm">
+        <div
+          ref={wrapperRef}
+          className="relative w-full rounded-2xl bg-white shadow-sm"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => setTooltip(null)}
+        >
           {/* Highlight overlay sits underneath textarea */}
           <div
+            ref={highlightRef}
             className="absolute inset-0 rounded-2xl pointer-events-none z-0"
             style={{
               fontFamily:
@@ -135,6 +187,21 @@ export default function TextInput() {
             }}
           />
 
+          {tooltip && (
+            <div
+              className={`absolute z-30 px-3 py-1 text-xs text-white bg-gray-900/90 rounded-full pointer-events-none shadow-md transition-opacity duration-100 ${
+                tooltip.visible ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                top: tooltip.y,
+                left: tooltip.x,
+                transform: 'translate(-50%, -100%)',
+              }}
+            >
+              {tooltip.text}
+            </div>
+          )}
+
           <div className="absolute bottom-2 right-4 text-xs text-gray-400 z-10">
             {text.length} / {MAX_CHARACTERS}
           </div>
@@ -143,15 +210,21 @@ export default function TextInput() {
 
       <button
         onClick={handleSubmit}
-        disabled={!text.trim()}
-        className="mt-2 text-white px-6 py-2 rounded-lg font-semibold tracking-wide transition-colors disabled:bg-gray-400"
+        disabled={!text.trim() || isSubmitting}
+        className="mt-2 text-white px-6 py-2 rounded-lg font-semibold tracking-wide transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2 min-w-[100px] min-h-[40px]"
         style={{
           backgroundColor: '#2f528c',
-          opacity: text.trim() ? 1 : 0.7,
-          cursor: text.trim() ? 'pointer' : 'not-allowed',
+          opacity: text.trim() && !isSubmitting ? 1 : 0.7,
+          cursor: text.trim() && !isSubmitting ? 'pointer' : 'not-allowed',
         }}
       >
-        Submit
+        {isSubmitting ? (
+          <>
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </>
+        ) : (
+          'Submit'
+        )}
       </button>
     </div>
   );
