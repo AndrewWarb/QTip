@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { useStatsStore } from '@/lib/store';
+import { useStatsStore, useAzureOpenAIStore } from '@/lib/store';
 
 interface PiiDetection {
   type: string;
@@ -19,25 +19,53 @@ export default function TextInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { fetchStats } = useStatsStore();
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number; visible: boolean } | null>(null);
 
   const detectPii = useCallback(async (inputText: string) => {
+    console.log('[DEBUG] detectPii called with text:', inputText);
     if (!inputText.trim()) {
+      console.log('[DEBUG] Text is empty, setting detections to empty array');
       setDetections([]);
       return;
     }
 
     try {
+      console.log('[DEBUG] Making API request to detect PII');
+      const requestBody: any = { text: inputText };
+
+      // Get fresh credentials from store at call time (not from closure)
+      const currentEndpoint = useAzureOpenAIStore.getState().endpoint;
+      const currentApiKey = useAzureOpenAIStore.getState().apiKey;
+      const currentDeployment = useAzureOpenAIStore.getState().deployment;
+      const currentHasValid = useAzureOpenAIStore.getState().hasValidCredentials();
+
+      // Include Azure OpenAI credentials if available
+      if (currentHasValid) {
+        requestBody.azureOpenAI = {
+          endpoint: currentEndpoint,
+          apiKey: currentApiKey,
+          deployment: currentDeployment
+        };
+        console.log(`[DEBUG] Azure credentials - endpoint: ${currentEndpoint} deployment: ${currentDeployment} hasValid: ${currentHasValid}`);
+      } else {
+        console.log(`[DEBUG] Azure credentials - endpoint: ${currentEndpoint} deployment: ${currentDeployment} hasValid: ${currentHasValid}`);
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/detect-pii`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setDetections(data);
+        console.log('PII detections:', data);
+        // Sort detections by startIndex to ensure proper processing order
+        const sortedDetections = data.sort((a: any, b: any) => a.startIndex - b.startIndex);
+        console.log('Sorted PII detections:', sortedDetections);
+        setDetections(sortedDetections);
       } else {
         setDetections([]);
       }
@@ -48,19 +76,51 @@ export default function TextInput() {
   }, []);
 
   const handleTextChange = (newText: string) => {
+    console.log('[DEBUG] handleTextChange called with:', newText);
     setText(newText);
-    // Debounce the API call to avoid too many requests while typing
-    const timeoutId = setTimeout(() => detectPii(newText), 300);
-    return () => clearTimeout(timeoutId);
+    // Clear previous detections immediately when text changes
+    setDetections([]);
+    console.log('[DEBUG] Cleared previous detections due to text change');
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      console.log('[DEBUG] Clearing previous timeout');
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    // Set new timeout for debounced API call
+    console.log('[DEBUG] Setting new timeout for API call');
+    debounceTimeoutRef.current = setTimeout(() => {
+      console.log('[DEBUG] Timeout triggered, calling detectPii');
+      detectPii(newText);
+    }, 300);
   };
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-          await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/submit`, {
+
+      // Prepare submission request with optional Azure credentials
+      const requestBody: any = { text };
+
+      // Get fresh credentials from store at submit time
+      const currentEndpoint = useAzureOpenAIStore.getState().endpoint;
+      const currentApiKey = useAzureOpenAIStore.getState().apiKey;
+      const currentDeployment = useAzureOpenAIStore.getState().deployment;
+      const currentHasValid = useAzureOpenAIStore.getState().hasValidCredentials();
+
+      // Include Azure OpenAI credentials if available
+      if (currentHasValid) {
+        requestBody.azureOpenAI = {
+          endpoint: currentEndpoint,
+          apiKey: currentApiKey,
+          deployment: currentDeployment
+        };
+        console.log('[SUBMIT] Including Azure credentials with submission');
+      }
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify(requestBody),
       });
       fetchStats();
       setText('');
@@ -75,19 +135,26 @@ export default function TextInput() {
   const renderHighlightedText = () => {
     if (!text || detections.length === 0) return text;
 
+    console.log('Rendering detections:', detections);
+
     let result = '';
     let lastIndex = 0;
 
     detections.forEach((detection) => {
+      console.log('Processing detection:', detection);
       // Add text before the detection
       result += text.slice(lastIndex, detection.startIndex);
+      // Choose color based on detection type
+      const underlineColor = detection.type === 'pii.health' ? '#22c55e' : '#2f528c'; // Green for health, blue for email
+      console.log('Chosen color for', detection.type, ':', underlineColor);
       // Add highlighted detection with wavy underline (per spec)
-      result += `<span class="pii-highlight" data-tooltip="${detection.tooltip}" style="text-decoration: underline; text-decoration-style: wavy; text-decoration-color: #2f528c; text-decoration-thickness: 2px; position: relative;">${detection.originalValue}</span>`;
+      result += `<span class="pii-highlight" data-tooltip="${detection.tooltip}" style="text-decoration: underline; text-decoration-style: wavy; text-decoration-color: ${underlineColor}; text-decoration-thickness: 2px; position: relative;">${detection.originalValue}</span>`;
       lastIndex = detection.endIndex;
     });
 
     // Add remaining text
     result += text.slice(lastIndex);
+    console.log('Final highlighted result:', result);
     return result;
   };
 

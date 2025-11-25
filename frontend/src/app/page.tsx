@@ -1,5 +1,6 @@
 import TextInput from '@/components/TextInput';
 import StatsPanel from '@/components/StatsPanel';
+import AzureCredentials from '@/components/AzureCredentials';
 
 export default function Home() {
   return (
@@ -15,6 +16,10 @@ export default function Home() {
 
         <div className="max-w-md mx-auto">
           <StatsPanel />
+        </div>
+
+        <div className="mt-16">
+          <AzureCredentials />
         </div>
       </div>
     </main>

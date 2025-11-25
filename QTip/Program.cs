@@ -12,6 +12,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Services
 builder.Services.AddScoped<PiiService>(); // Scoped per request - appropriate for services that use DbContext
 
+// AI Service (optional - only if Azure OpenAI credentials are provided)
+var azureOpenAiEndpoint = builder.Configuration["AzureOpenAI:Endpoint"];
+var azureOpenAiKey = builder.Configuration["AzureOpenAI:ApiKey"];
+if (!string.IsNullOrEmpty(azureOpenAiEndpoint) && !string.IsNullOrEmpty(azureOpenAiKey))
+{
+    builder.Services.AddSingleton(new AzureOpenAIService(azureOpenAiEndpoint, azureOpenAiKey));
+    Console.WriteLine("Azure OpenAI service configured for health data detection");
+}
+else
+{
+    Console.WriteLine("Azure OpenAI credentials not provided - health data detection disabled");
+}
+
 // CORS (permissive as this is not being deployed into production)
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
@@ -44,16 +57,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.MapPost("/api/detect-pii", (PiiService service, SubmissionRequest request) =>
-    Results.Ok(service.DetectPii(request.Text)));
+app.MapPost("/api/detect-pii", async (PiiService service, PiiDetectionRequest request) =>
+    Results.Ok(await service.DetectPiiAsync(request.Text, request.AzureOpenAI)));
 
 app.MapPost("/api/submit", async (PiiService service, SubmissionRequest request) =>
 {
-    var (tokenized, _) = await service.ProcessTextAsync(request.Text);
+    var (tokenized, _) = await service.ProcessTextAsync(request.Text, request.AzureOpenAI);
     return Results.Ok(new { tokenizedText = tokenized });
 }).DisableAntiforgery();
 
 app.MapGet("/api/stats", async (PiiService service) =>
-    Results.Ok(new { totalPiiEmails = await service.GetTotalPiiEmailsAsync() }));
+    Results.Ok(new {
+        totalPiiEmails = await service.GetTotalPiiEmailsAsync(),
+        totalPiiHealthData = await service.GetTotalPiiHealthDataAsync()
+    }));
 
 app.Run();

@@ -1,3 +1,3 @@
 namespace QTip.Models;
 
-public record SubmissionRequest(string Text);
+public record SubmissionRequest(string Text, AzureOpenAICredentials? AzureOpenAI = null);
