@@ -18,11 +18,6 @@ var azureOpenAiKey = builder.Configuration["AzureOpenAI:ApiKey"];
 if (!string.IsNullOrEmpty(azureOpenAiEndpoint) && !string.IsNullOrEmpty(azureOpenAiKey))
 {
     builder.Services.AddSingleton(new AzureOpenAIService(azureOpenAiEndpoint, azureOpenAiKey));
-    Console.WriteLine("Azure OpenAI service configured for health data detection");
-}
-else
-{
-    Console.WriteLine("Azure OpenAI credentials not provided - health data detection disabled");
 }
 
 // CORS (permissive as this is not being deployed into production)
@@ -41,13 +36,10 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        Console.WriteLine("Running database migrations...");
         await dbContext.Database.MigrateAsync();
-        Console.WriteLine("Database migrations completed successfully.");
     }
-    catch (Exception ex)
+    catch (Exception)
     {
-        Console.WriteLine($"Database migration failed: {ex.Message}");
         // Continue - it is possible the tables already exist and this caused a timeout.
     }
 }
