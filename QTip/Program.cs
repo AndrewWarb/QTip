@@ -67,7 +67,8 @@ app.MapPost("/api/submit", async (PiiService service, SubmissionRequest request)
 }).DisableAntiforgery();
 
 app.MapGet("/api/stats", async (PiiService service) =>
-    Results.Ok(new {
+    Results.Ok(new
+    {
         totalPiiEmails = await service.GetTotalPiiEmailsAsync(),
         totalPiiHealthData = await service.GetTotalPiiHealthDataAsync()
     }));

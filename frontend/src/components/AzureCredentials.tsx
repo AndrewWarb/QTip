@@ -58,7 +58,7 @@ export default function AzureCredentials() {
 
   if (showCredentials) {
     return (
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Azure OpenAI Configuration</h3>
         <p className="text-sm text-gray-600 mb-4">
           Optional: Add Azure OpenAI credentials to detect health/medical data
@@ -81,7 +81,7 @@ export default function AzureCredentials() {
               value={localApiKey}
               onChange={(e) => setLocalApiKey(e.target.value)}
               placeholder="your-api-key-here"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-gray-900 placeholder-gray-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
             />
             <p className="text-xs text-gray-500 mt-1">
               Your Azure OpenAI API key (keep this secure)
@@ -100,8 +100,9 @@ export default function AzureCredentials() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
             />
             <p className="text-xs text-gray-500 mt-1">
-              <span className="font-bold text-yellow-500">⚠</span> This must be in the format "https://your-resource-name.openai.azure.com/" and NOT include anything
-              additional such as "openai/v1/"
+              <span className="font-bold text-yellow-500">⚠</span> This must be in the format
+              &#34;https://your-resource-name.openai.azure.com/&#34; and NOT include anything
+              additional such as &#34;openai/v1/&#34;
             </p>
           </div>
 
@@ -114,7 +115,7 @@ export default function AzureCredentials() {
               value={localDeployment}
               onChange={(e) => setLocalDeployment(e.target.value)}
               placeholder="gpt-4.1-mini"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm text-gray-900 placeholder-gray-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
             />
             <p className="text-xs text-gray-500 mt-1">
               The deployment name from your Azure OpenAI resource (e.g., gpt-4.1-mini, gpt-35-turbo)
