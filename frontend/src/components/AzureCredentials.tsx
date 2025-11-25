@@ -46,8 +46,7 @@ export default function AzureCredentials() {
           </div>
           <button
             onClick={() => setShowCredentials(true)}
-            className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors cursor-pointer"
-            style={{ backgroundColor: '#4f7ac7' }}
+            className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors cursor-pointer bg-brand-blue"
           >
             Edit Credentials
           </button>
@@ -73,10 +72,11 @@ export default function AzureCredentials() {
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-1">
               API Key
             </label>
             <input
+              id="api-key"
               type="password"
               value={localApiKey}
               onChange={(e) => setLocalApiKey(e.target.value)}
@@ -89,10 +89,11 @@ export default function AzureCredentials() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="azure-endpoint" className="block text-sm font-medium text-gray-700 mb-1">
               Azure OpenAI Endpoint
             </label>
             <input
+              id="azure-endpoint"
               type="url"
               value={localEndpoint}
               onChange={(e) => setLocalEndpoint(e.target.value)}
@@ -107,10 +108,11 @@ export default function AzureCredentials() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="model-deployment" className="block text-sm font-medium text-gray-700 mb-1">
               Model Deployment Name
             </label>
             <input
+              id="model-deployment"
               type="text"
               value={localDeployment}
               onChange={(e) => setLocalDeployment(e.target.value)}
@@ -155,8 +157,7 @@ export default function AzureCredentials() {
       <span className="text-3xl">🤖</span>
       <button
         onClick={() => setShowCredentials(true)}
-        className="px-6 py-3 text-white rounded-full hover:opacity-90 transition-colors font-medium min-h-[40px] cursor-pointer"
-        style={{ backgroundColor: '#4f7ac7' }}
+        className="px-6 py-3 text-white rounded-full hover:opacity-90 transition-colors font-medium min-h-[40px] cursor-pointer bg-brand-blue"
       >
         Enable AI Health PII Detection
       </button>
