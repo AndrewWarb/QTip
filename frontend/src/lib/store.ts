@@ -38,17 +38,13 @@ export const useAzureOpenAIStore = create<AzureOpenAIState>((set, get) => ({
   deployment: 'gpt-4.1-mini', // Default deployment name
   setCredentials: (endpoint: string, apiKey: string, deployment?: string) => {
     const deploymentName = deployment || get().deployment || 'gpt-4.1-mini';
-    console.log('[STORE DEBUG] Setting credentials - endpoint:', `"${endpoint}"`, 'apiKey length:', apiKey.length, 'deployment:', `"${deploymentName}"`);
     set({ endpoint, apiKey, deployment: deploymentName });
   },
   clearCredentials: () => {
-    console.log('[STORE DEBUG] Clearing credentials');
     set({ endpoint: '', apiKey: '', deployment: 'gpt-4.1-mini' });
   },
   hasValidCredentials: () => {
     const { endpoint, apiKey, deployment } = get();
-    const isValid = endpoint.trim() !== '' && apiKey.trim() !== '' && deployment.trim() !== '';
-    console.log('[STORE DEBUG] hasValidCredentials check - endpoint:', `"${endpoint}"`, 'apiKey length:', apiKey.length, 'deployment:', `"${deployment}"`, 'isValid:', isValid);
-    return isValid;
+    return endpoint.trim() !== '' && apiKey.trim() !== '' && deployment.trim() !== '';
   },
 }));
