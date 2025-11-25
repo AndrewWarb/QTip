@@ -8,7 +8,7 @@ export default function StatsPanel() {
   const { hasValidCredentials } = useAzureOpenAIStore();
 
   useEffect(() => {
-    fetchStats();
+    void fetchStats();
   }, [fetchStats]);
 
   return (
