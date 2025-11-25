@@ -38,7 +38,7 @@ export default function AzureCredentials() {
 
   if (hasValidCredentials() && !showCredentials) {
     return (
-      <div className="mb-6 px-8 py-4 bg-gray-50 rounded-full max-w-md mx-auto">
+      <div className="mb-6 px-8 py-4 bg-gray-50 rounded-full shadow-sm max-w-lg mx-auto">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-800">Azure OpenAI Configuration</h3>
@@ -46,7 +46,7 @@ export default function AzureCredentials() {
           </div>
           <button
             onClick={() => setShowCredentials(true)}
-            className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors cursor-pointer bg-brand-blue"
+            className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors cursor-pointer bg-blue-600"
           >
             Edit Credentials
           </button>
@@ -57,7 +57,7 @@ export default function AzureCredentials() {
 
   if (showCredentials) {
     return (
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Azure OpenAI Configuration</h3>
         <p className="text-sm text-gray-600 mb-4">
           Optional: Add Azure OpenAI credentials to detect health/medical data
@@ -157,7 +157,7 @@ export default function AzureCredentials() {
       <span className="text-3xl">🤖</span>
       <button
         onClick={() => setShowCredentials(true)}
-        className="px-6 py-3 text-white rounded-full hover:opacity-90 transition-colors font-medium min-h-[40px] cursor-pointer bg-brand-blue"
+        className="px-6 py-3 text-white rounded-full hover:opacity-90 transition-colors font-medium min-h-[40px] cursor-pointer bg-blue-600"
       >
         Enable AI Health PII Detection
       </button>

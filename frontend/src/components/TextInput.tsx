@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useStatsStore, useAzureOpenAIStore } from '@/lib/store';
 
 interface PiiDetection {
@@ -11,46 +11,68 @@ interface PiiDetection {
   tooltip: string;
 }
 
+interface TooltipState {
+  text: string;
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
+interface PiiDetectionRequest {
+  text: string;
+  azureOpenAI?: {
+    endpoint: string;
+    apiKey: string;
+    deployment: string;
+  };
+}
+
+// Color constants
+const EMAIL_UNDERLINE_COLOR = '#2f528c';
+const HEALTH_UNDERLINE_COLOR = '#22c55e';
+const SUBMIT_BUTTON_COLOR = '#2f528c';
+
 export default function TextInput() {
+  // Constants
   const MAX_CHARACTERS = 500;
+
+  // Zustand store
+  const { fetchStats } = useStatsStore();
+
+  // Component state
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [detections, setDetections] = useState<PiiDetection[]>([]);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  // Refs for DOM manipulation
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { fetchStats } = useStatsStore();
-  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number; visible: boolean } | null>(null);
 
   const detectPii = useCallback(async (inputText: string) => {
-    console.log('[DEBUG] detectPii called with text:', inputText);
     if (!inputText.trim()) {
-      console.log('[DEBUG] Text is empty, setting detections to empty array');
       setDetections([]);
       return;
     }
 
     try {
-      console.log('[DEBUG] Making API request to detect PII');
-      const requestBody: any = { text: inputText };
+      const requestBody: PiiDetectionRequest = { text: inputText };
 
       // Get fresh credentials from store at call time (not from closure)
       const currentEndpoint = useAzureOpenAIStore.getState().endpoint;
       const currentApiKey = useAzureOpenAIStore.getState().apiKey;
       const currentDeployment = useAzureOpenAIStore.getState().deployment;
-      const currentHasValid = useAzureOpenAIStore.getState().hasValidCredentials();
+      const hasValidAzureCredentials = useAzureOpenAIStore.getState().hasValidCredentials();
 
       // Include Azure OpenAI credentials if available
-      if (currentHasValid) {
+      if (hasValidAzureCredentials) {
         requestBody.azureOpenAI = {
           endpoint: currentEndpoint,
           apiKey: currentApiKey,
           deployment: currentDeployment
         };
-        console.log(`[DEBUG] Azure credentials - endpoint: ${currentEndpoint} deployment: ${currentDeployment} hasValid: ${currentHasValid}`);
-      } else {
-        console.log(`[DEBUG] Azure credentials - endpoint: ${currentEndpoint} deployment: ${currentDeployment} hasValid: ${currentHasValid}`);
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/detect-pii`, {
@@ -61,10 +83,8 @@ export default function TextInput() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('PII detections:', data);
         // Sort detections by startIndex to ensure proper processing order
-        const sortedDetections = data.sort((a: any, b: any) => a.startIndex - b.startIndex);
-        console.log('Sorted PII detections:', sortedDetections);
+        const sortedDetections = data.sort((a: PiiDetection, b: PiiDetection) => a.startIndex - b.startIndex);
         setDetections(sortedDetections);
       } else {
         setDetections([]);
@@ -75,22 +95,18 @@ export default function TextInput() {
     }
   }, []);
 
+  // Debounced text change handler - only calls detectPII after 300ms of no typing
   const handleTextChange = (newText: string) => {
-    console.log('[DEBUG] handleTextChange called with:', newText);
     setText(newText);
     // Clear previous detections immediately when text changes
     setDetections([]);
-    console.log('[DEBUG] Cleared previous detections due to text change');
     // Clear previous timeout
     if (debounceTimeoutRef.current) {
-      console.log('[DEBUG] Clearing previous timeout');
       clearTimeout(debounceTimeoutRef.current);
     }
     // Set new timeout for debounced API call
-    console.log('[DEBUG] Setting new timeout for API call');
     debounceTimeoutRef.current = setTimeout(() => {
-      console.log('[DEBUG] Timeout triggered, calling detectPii');
-      detectPii(newText);
+      void detectPii(newText);
     }, 300);
   };
 
@@ -99,22 +115,21 @@ export default function TextInput() {
       setIsSubmitting(true);
 
       // Prepare submission request with optional Azure credentials
-      const requestBody: any = { text };
+      const requestBody: PiiDetectionRequest = { text };
 
       // Get fresh credentials from store at submit time
       const currentEndpoint = useAzureOpenAIStore.getState().endpoint;
       const currentApiKey = useAzureOpenAIStore.getState().apiKey;
       const currentDeployment = useAzureOpenAIStore.getState().deployment;
-      const currentHasValid = useAzureOpenAIStore.getState().hasValidCredentials();
+      const hasValidAzureCredentials = useAzureOpenAIStore.getState().hasValidCredentials();
 
       // Include Azure OpenAI credentials if available
-      if (currentHasValid) {
+      if (hasValidAzureCredentials) {
         requestBody.azureOpenAI = {
           endpoint: currentEndpoint,
           apiKey: currentApiKey,
           deployment: currentDeployment
         };
-        console.log('[SUBMIT] Including Azure credentials with submission');
       }
 
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/submit`, {
@@ -122,7 +137,7 @@ export default function TextInput() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
-      fetchStats();
+      await fetchStats();
       setText('');
       setDetections([]);
     } catch (error) {
@@ -133,29 +148,54 @@ export default function TextInput() {
   };
 
   const renderHighlightedText = () => {
-    if (!text || detections.length === 0) return text;
+    if (!text) return text;
+    if (detections.length === 0) return text;
 
-    console.log('Rendering detections:', detections);
-
-    let result = '';
-    let lastIndex = 0;
-
-    detections.forEach((detection) => {
-      console.log('Processing detection:', detection);
-      // Add text before the detection
-      result += text.slice(lastIndex, detection.startIndex);
-      // Choose color based on detection type
-      const underlineColor = detection.type === 'pii.health' ? '#22c55e' : '#2f528c'; // Green for health, blue for email
-      console.log('Chosen color for', detection.type, ':', underlineColor);
-      // Add highlighted detection with wavy underline (per spec)
-      result += `<span class="pii-highlight" data-tooltip="${detection.tooltip}" style="text-decoration: underline; text-decoration-style: wavy; text-decoration-color: ${underlineColor}; text-decoration-thickness: 2px; position: relative;">${detection.originalValue}</span>`;
-      lastIndex = detection.endIndex;
+    // Create a set of indices that are part of detections for O(1) lookup
+    const highlightedIndices = new Set<number>();
+    detections.forEach(detection => {
+      for (let i = detection.startIndex; i < detection.endIndex; i++) {
+        highlightedIndices.add(i);
+      }
     });
 
-    // Add remaining text
-    result += text.slice(lastIndex);
-    console.log('Final highlighted result:', result);
-    return result;
+    const elements: React.ReactNode[] = [];
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const isHighlighted = highlightedIndices.has(i);
+
+      if (isHighlighted) {
+        // Find which detection this character belongs to
+        const detection = detections.find(d =>
+          i >= d.startIndex && i < d.endIndex
+        );
+
+        if (detection) {
+          const underlineColor = detection.type === 'pii.health' ? HEALTH_UNDERLINE_COLOR : EMAIL_UNDERLINE_COLOR;
+          elements.push(
+            <span
+              key={i}
+              className="pii-highlight"
+              data-tooltip={detection.tooltip}
+              style={{
+                textDecoration: 'underline',
+                textDecorationStyle: 'wavy',
+                textDecorationColor: underlineColor,
+                textDecorationThickness: '2px',
+                position: 'relative'
+              }}
+            >
+              {char}
+            </span>
+          );
+        }
+      } else {
+        // Regular character - use React.Fragment for performance
+        elements.push(<React.Fragment key={i}>{char}</React.Fragment>);
+      }
+    }
+
+    return elements;
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -199,7 +239,7 @@ export default function TextInput() {
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <div className="mb-4 relative w-full max-w-2xl" style={{ lineHeight: 0 }}>
+      <div className="mb-4 relative w-full max-w-2xl text-input-wrapper">
         <div
           ref={wrapperRef}
           className="relative w-full rounded-2xl bg-white shadow-sm"
@@ -210,30 +250,11 @@ export default function TextInput() {
           <div
             ref={highlightRef}
             className="absolute inset-0 rounded-2xl pointer-events-none z-0"
-            style={{
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-              fontSize: '16px',
-              lineHeight: '24px',
-            }}
           >
             {detections.length > 0 && text && (
-              <div
-                style={{
-                  margin: 0,
-                  padding: '16px', // matches textarea padding (p-4)
-                  border: 'none',
-                  background: 'transparent',
-                  fontFamily: 'inherit',
-                  fontSize: 'inherit',
-                  lineHeight: 'inherit',
-                  whiteSpace: 'pre-wrap',
-                  wordWrap: 'break-word',
-                  color: 'transparent',
-                  overflow: 'hidden',
-                }}
-                dangerouslySetInnerHTML={{ __html: renderHighlightedText() }}
-              />
+              <div className="text-input-overlay">
+                {renderHighlightedText()}
+              </div>
             )}
           </div>
 
@@ -242,33 +263,30 @@ export default function TextInput() {
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             placeholder="Enter text to check for PII..."
-            className="w-full p-4 border border-transparent rounded-2xl resize-none min-h-[220px] text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent relative z-10 bg-transparent"
+            className="w-full p-4 border border-transparent rounded-2xl resize-none min-h-[220px] text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent relative z-10 bg-transparent text-input-textarea"
             maxLength={MAX_CHARACTERS}
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="none"
-            style={{
-              fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-              fontSize: '16px',
-              lineHeight: '24px',
-            }}
           />
 
           {tooltip && (
             <div
-              className={`absolute z-30 px-3 py-1 text-xs text-white bg-gray-900/90 rounded-full pointer-events-none shadow-md transition-opacity duration-100 ${
+              className={`absolute z-30 px-3 py-1 text-xs text-white bg-gray-900/90 rounded-full pointer-events-none shadow-md transition-opacity duration-100 whitespace-nowrap ${
                 tooltip.visible ? 'opacity-100' : 'opacity-0'
               }`}
               style={{
                 top: tooltip.y,
-                left: tooltip.x,
+                left: Math.min(Math.max(tooltip.x, 50), wrapperRef.current?.clientWidth ? wrapperRef.current.clientWidth - 50 : tooltip.x),
                 transform: 'translate(-50%, -100%)',
+                maxWidth: '200px',
               }}
             >
               {tooltip.text}
             </div>
           )}
 
+          {/* Character counter - shows current/total characters */}
           <div className="absolute bottom-2 right-4 text-xs text-gray-400 z-10">
             {text.length} / {MAX_CHARACTERS}
           </div>
@@ -280,7 +298,7 @@ export default function TextInput() {
         disabled={!text.trim() || isSubmitting}
         className="mt-2 text-white px-6 py-2 rounded-lg font-semibold tracking-wide transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2 min-w-[100px] min-h-[40px]"
         style={{
-          backgroundColor: '#2f528c',
+          backgroundColor: SUBMIT_BUTTON_COLOR,
           opacity: text.trim() && !isSubmitting ? 1 : 0.7,
           cursor: text.trim() && !isSubmitting ? 'pointer' : 'not-allowed',
         }}

@@ -6,6 +6,35 @@
   --font-sans: var(--font-geist-sans);
 }
 
+/* Text input wrapper - removes line height for proper stacking */
+.text-input-wrapper {
+  line-height: 0;
+}
+
+/* Text input highlight overlay styling */
+.text-input-overlay {
+  margin: 0;
+  padding: 16px; /* matches textarea padding (p-4) */
+  border: none;
+  background: transparent;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: transparent;
+  overflow: hidden;
+}
+
+/* Text input textarea font styling */
+.text-input-textarea {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
