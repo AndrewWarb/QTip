@@ -1,6 +1,6 @@
-@QTip_HostAddress = http://localhost:5263
+@QTip_HostAddress = http://localhost:8080
 
-### Test PII Detection (Real-time highlighting)
+### Test Email PII Detection (Real-time highlighting)
 POST {{QTip_HostAddress}}/api/detect-pii
 Content-Type: application/json
 
@@ -10,7 +10,17 @@ Content-Type: application/json
 
 ###
 
-### Test Text Submission (Tokenization)
+### Test Health PII Detection (Real-time highlighting)
+POST {{QTip_HostAddress}}/api/detect-pii
+Content-Type: application/json
+
+{
+  "text": "Patient has diabetes and severe headache, contact john@example.com"
+}
+
+###
+
+### Test Email Submission (Tokenization)
 POST {{QTip_HostAddress}}/api/submit
 Content-Type: application/json
 
@@ -20,22 +30,42 @@ Content-Type: application/json
 
 ###
 
+### Test Health PII Submission (Tokenization)
+POST {{QTip_HostAddress}}/api/submit
+Content-Type: application/json
+
+{
+  "text": "Patient has diabetes and severe headache, contact john@example.com"
+}
+
+###
+
+### Test Mixed PII Submission
+POST {{QTip_HostAddress}}/api/submit
+Content-Type: application/json
+
+{
+  "text": "Patient John Doe has broken his arm and has high blood pressure. Contact doctor@hospital.com for appointment."
+}
+
+###
+
 ### Test Statistics
 GET {{QTip_HostAddress}}/api/stats
 
 ###
 
-### Test Multiple Submissions
+### Test Multiple Submissions with Health Data
 POST {{QTip_HostAddress}}/api/submit
 Content-Type: application/json
 
 {
-  "text": "Send report to john@example.com and bob@test.org"
+  "text": "Send report to john@example.com and bob@test.org about the cancer treatment"
 }
 
 ###
 
-### Check Updated Stats
+### Check Updated Stats (Should show both email and health counts)
 GET {{QTip_HostAddress}}/api/stats
 
 ###
