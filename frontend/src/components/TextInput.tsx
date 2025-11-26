@@ -151,48 +151,64 @@ export default function TextInput() {
     if (!text) return text;
     if (detections.length === 0) return text;
 
-    // Create a set of indices that are part of detections for O(1) lookup
-    const highlightedIndices = new Set<number>();
-    detections.forEach(detection => {
-      for (let i = detection.startIndex; i < detection.endIndex; i++) {
-        highlightedIndices.add(i);
-      }
-    });
+    // Sort detections by start index to process them in order
+    const sortedDetections = detections.sort((a, b) => a.startIndex - b.startIndex);
 
     const elements: React.ReactNode[] = [];
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const isHighlighted = highlightedIndices.has(i);
+    let lastIndex = 0;
 
-      if (isHighlighted) {
-        // Find which detection this character belongs to
-        const detection = detections.find(d =>
-          i >= d.startIndex && i < d.endIndex
-        );
-
-        if (detection) {
-          const underlineColor = detection.type === 'pii.health' ? HEALTH_UNDERLINE_COLOR : EMAIL_UNDERLINE_COLOR;
-          elements.push(
-            <span
-              key={i}
-              className="pii-highlight"
-              data-tooltip={detection.tooltip}
-              style={{
-                textDecoration: 'underline',
-                textDecorationStyle: 'wavy',
-                textDecorationColor: underlineColor,
-                textDecorationThickness: '2px',
-                position: 'relative'
-              }}
-            >
-              {char}
-            </span>
-          );
-        }
-      } else {
-        // Regular character - use React.Fragment for performance
-        elements.push(<React.Fragment key={i}>{char}</React.Fragment>);
+    sortedDetections.forEach((detection, detectionIndex) => {
+      // Add non-highlighted text before this detection
+      if (detection.startIndex > lastIndex) {
+        const nonHighlightedText = text.slice(lastIndex, detection.startIndex);
+        // Split by newlines to preserve line breaks
+        const parts = nonHighlightedText.split('\n');
+        parts.forEach((part, partIndex) => {
+          if (partIndex > 0) {
+            elements.push(<br key={`br-${detectionIndex}-${partIndex}`} />);
+          }
+          if (part) {
+            elements.push(<React.Fragment key={`text-${detectionIndex}-${partIndex}`}>{part}</React.Fragment>);
+          }
+        });
       }
+
+      // Add highlighted text
+      const highlightedText = text.slice(detection.startIndex, detection.endIndex);
+      const underlineColor = detection.type === 'pii.health' ? HEALTH_UNDERLINE_COLOR : EMAIL_UNDERLINE_COLOR;
+
+      elements.push(
+        <span
+          key={`highlight-${detectionIndex}`}
+          className="pii-highlight"
+          data-tooltip={detection.tooltip}
+          style={{
+            textDecoration: 'underline',
+            textDecorationStyle: 'wavy',
+            textDecorationColor: underlineColor,
+            textDecorationThickness: '2px',
+            position: 'relative'
+          }}
+        >
+          {highlightedText}
+        </span>
+      );
+
+      lastIndex = detection.endIndex;
+    });
+
+    // Add any remaining non-highlighted text
+    if (lastIndex < text.length) {
+      const remainingText = text.slice(lastIndex);
+      const parts = remainingText.split('\n');
+      parts.forEach((part, partIndex) => {
+        if (partIndex > 0) {
+          elements.push(<br key={`br-end-${partIndex}`} />);
+        }
+        if (part) {
+          elements.push(<React.Fragment key={`text-end-${partIndex}`}>{part}</React.Fragment>);
+        }
+      });
     }
 
     return elements;

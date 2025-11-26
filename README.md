@@ -335,8 +335,4 @@ docker compose up --build
 
 ## Known Bugs
 
-### Text Wrapping Underline Misalignment
-When a PII classification (email or health data) wraps across multiple lines due to text wrapping in the textarea, the underlines may become misaligned with the actual text content. This occurs because the frontend highlighting system calculates underline positions based on text selection ranges, but browser text wrapping can shift word positions unpredictably.
-
-**Impact:** Visual inconsistency where underlines don't perfectly match the highlighted text spans.
-**Status:** Cosmetic only, does not affect detection accuracy or tokenization functionality.
+**None currently known.** All issues have been resolved.
