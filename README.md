@@ -5,15 +5,16 @@ A real-time personally identifiable information (PII) detection and tokenization
 ## Table of Contents
 
 - [Features](#features)
+- [Project Context](#project-context)
 - [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Installation](#installation)
 - [Usage](#usage)
+- [Architectural Decisions](#architectural-decisions)
+- [Assumptions & Trade-offs](#assumptions--trade-offs)
+- [Architecture](#architecture)
 - [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Development](#development)
+- [Future Extensions](#future-extensions)
 - [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [Known Bugs](#known-bugs)
 
 ## Features
 
@@ -42,7 +43,7 @@ Complex integration testing was intentionally left out to contain project scope,
 1. **Clone the repository**
    ```bash
    git clone <this-repository-url>
-   cd qtip
+   cd QTip
    ```
 
 2. **Start all services**
@@ -54,43 +55,6 @@ Complex integration testing was intentionally left out to contain project scope,
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
    - Swagger UI: http://localhost:8080/swagger
-
-## Architecture
-
-### Backend (.NET 10.0 Minimal API)
-- **Framework**: ASP.NET Core Minimal APIs
-- **Database**: PostgreSQL with Entity Framework Core
-- **Detection**: Regex-based email detection + AI-powered health data detection
-- **AI Integration**: Azure OpenAI GPT-4o-mini for fuzzy health information detection
-- **Endpoints**:
-  - `POST /api/submit` - Process and tokenize text (supports both email and health PII)
-  - `POST /api/detect-pii` - Real-time PII detection for frontend highlighting
-  - `GET /api/stats` - Get total PII email and health data counts
-
-### Frontend (Next.js 16 + TypeScript)
-- **Framework**: Next.js with App Router
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **Features**: Real-time highlighting (email + health PII), character counter, loading spinner, Azure OpenAI configuration
-
-### Data Architecture
-- **Tokenized Submissions**: Store processed text with tokens replacing sensitive data
-- **Classification Vault**: Store metadata about detected PII (token, original value, classification tag)
-- **Separation**: Clear separation between tokenized content and sensitive values for compliance
-
-### Database Schema
-
-#### Submissions Table
-- `Id` (int, PK)
-- `TokenizedText` (string)
-- `SubmittedAt` (datetime)
-
-#### Classifications Table
-- `Id` (int, PK)
-- `Token` (string)
-- `OriginalValue` (string)
-- `Tag` (string)
-- `SubmissionId` (int, FK)
 
 ## Usage
 
@@ -105,77 +69,24 @@ Complex integration testing was intentionally left out to contain project scope,
 5. **Submit**: Click the submit button to process and tokenize the text
 6. **View Statistics**: The stats panel shows total counts of PII emails and health data detected across all submissions
 
-## API Documentation
+### Shutting Down the Application
 
-### Submit Text for Processing
-```http
-POST /api/submit
-Content-Type: application/json
-
-{
-  "text": "Contact john@example.com for more info",
-  "azureOpenAI": {
-    "endpoint": "https://your-resource.openai.azure.com",
-    "apiKey": "your-api-key",
-    "deployment": "gpt-4o-mini"
-  }
-}
+To stop all services:
+```bash
+# In a separate terminal from where you ran docker compose up
+docker compose down
 ```
 
-**Response:**
-```json
-{
-  "tokenizedText": "Contact {{EMAIL_TOKEN_abc123}} for more info"
-}
+To completely stop all services **and clear all data** (including the PostgreSQL database):
+```bash
+# Stop and remove containers
+docker compose down
+
+# Remove the PostgreSQL data volume (WARNING: This deletes all stored data!)
+docker volume rm qtip_postgres_data
 ```
 
-### Real-time PII Detection
-```http
-POST /api/detect-pii
-Content-Type: application/json
-
-{
-  "text": "Patient has diabetes, contact john@example.com",
-  "azureOpenAI": {
-    "endpoint": "https://your-resource.openai.azure.com",
-    "apiKey": "your-api-key",
-    "deployment": "gpt-4o-mini"
-  }
-}
-```
-
-**Response:**
-```json
-[
-  {
-    "type": "pii.email",
-    "originalValue": "john@example.com",
-    "startIndex": 28,
-    "endIndex": 43,
-    "tooltip": "PII – Email Address"
-  },
-  {
-    "type": "pii.health",
-    "originalValue": "diabetes",
-    "startIndex": 11,
-    "endIndex": 19,
-    "tooltip": "PHI - Health Data"
-  }
-]
-```
-
-### Get Statistics
-```http
-GET /api/stats
-```
-
-**Response:**
-```json
-{
-  "totalPiiEmails": 42,
-  "totalPiiHealthData": 15
-}
-```
+**Note:** The PostgreSQL data volume persists between container restarts by default. Remove it only if you want to start with a fresh database.
 
 ## Architectural Decisions
 
@@ -253,6 +164,115 @@ Note: Many of these were chosen in order to align with the existing stack as pre
 - **Unit Testing**: Comprehensive unit tests implemented for both frontend and backend
 - **AI Integration**: Limited only to health data detection
 
+## Architecture
+
+### Backend (.NET 10.0 Minimal API)
+- **Framework**: ASP.NET Core Minimal APIs
+- **Database**: PostgreSQL with Entity Framework Core
+- **Detection**: Regex-based email detection + AI-powered health data detection
+- **AI Integration**: Azure OpenAI GPT-4o-mini for fuzzy health information detection
+- **Endpoints**:
+  - `POST /api/submit` - Process and tokenize text (supports both email and health PII)
+  - `POST /api/detect-pii` - Real-time PII detection for frontend highlighting
+  - `GET /api/stats` - Get total PII email and health data counts
+
+### Frontend (Next.js 16 + TypeScript)
+- **Framework**: Next.js with App Router
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **Features**: Real-time highlighting (email + health PII), character counter, loading spinner, Azure OpenAI configuration
+
+### Data Architecture
+- **Tokenized Submissions**: Store processed text with tokens replacing sensitive data
+- **Classification Vault**: Store metadata about detected PII (token, original value, classification tag)
+- **Separation**: Clear separation between tokenized content and sensitive values for compliance
+
+### Database Schema
+
+#### Submissions Table
+- `Id` (int, PK)
+- `TokenizedText` (string)
+- `SubmittedAt` (datetime)
+
+#### Classifications Table
+- `Id` (int, PK)
+- `Token` (string)
+- `OriginalValue` (string)
+- `Tag` (string)
+- `SubmissionId` (int, FK)
+
+## API Documentation
+
+### Submit Text for Processing
+```http
+POST /api/submit
+Content-Type: application/json
+
+{
+  "text": "Contact john@example.com for more info",
+  "azureOpenAI": {
+    "endpoint": "https://your-resource.openai.azure.com",
+    "apiKey": "your-api-key",
+    "deployment": "gpt-4o-mini"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "tokenizedText": "Contact {{EMAIL_TOKEN_abc123}} for more info"
+}
+```
+
+### Real-time PII Detection
+```http
+POST /api/detect-pii
+Content-Type: application/json
+
+{
+  "text": "Patient has diabetes, contact john@example.com",
+  "azureOpenAI": {
+    "endpoint": "https://your-resource.openai.azure.com",
+    "apiKey": "your-api-key",
+    "deployment": "gpt-4o-mini"
+  }
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "type": "pii.email",
+    "originalValue": "john@example.com",
+    "startIndex": 28,
+    "endIndex": 43,
+    "tooltip": "PII – Email Address"
+  },
+  {
+    "type": "pii.health",
+    "originalValue": "diabetes",
+    "startIndex": 11,
+    "endIndex": 19,
+    "tooltip": "PHI - Health Data"
+  }
+]
+```
+
+### Get Statistics
+```http
+GET /api/stats
+```
+
+**Response:**
+```json
+{
+  "totalPiiEmails": 42,
+  "totalPiiHealthData": 15
+}
+```
+
 ## Future Extensions
 
 ### Multiple PII Types
@@ -303,3 +323,11 @@ docker compose up --build
 - Both email and health PII detection work
 - Test with terms like "diabetes", "cancer", "hypertension"
 - Health data appears with green underlines and "PHI - Health Data" tooltips
+
+## Known Bugs
+
+### Text Wrapping Underline Misalignment
+When a PII classification (email or health data) wraps across multiple lines due to text wrapping in the textarea, the underlines may become misaligned with the actual text content. This occurs because the frontend highlighting system calculates underline positions based on text selection ranges, but browser text wrapping can shift word positions unpredictably.
+
+**Impact:** Visual inconsistency where underlines don't perfectly match the highlighted text spans.
+**Status:** Cosmetic only, does not affect detection accuracy or tokenization functionality.
