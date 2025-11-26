@@ -2,6 +2,8 @@
 
 A real-time personally identifiable information (PII) detection and tokenization system built as a technical test. Features AI-powered health data detection using Azure OpenAI GPT-4o-mini and comprehensive unit testing.
 
+<img width="780" height="721" alt="image" src="https://github.com/user-attachments/assets/6f970034-2a9c-46e8-8ccc-f4531574cdb5" />
+
 ## Table of Contents
 
 - [Features](#features)
