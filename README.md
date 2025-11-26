@@ -44,7 +44,7 @@ Complex integration testing was intentionally left out to contain project scope,
 
 1. **Clone the repository**
    ```bash
-   git clone <this-repository-url>
+   git clone https://github.com/AndrewWarb/QTip.git
    cd QTip
    ```
 
