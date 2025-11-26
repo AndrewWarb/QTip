@@ -48,6 +48,7 @@ Complex integration testing was intentionally left out to contain project scope,
 
 2. **Start all services**
    ```bash
+   # Run from the project root directory (where docker-compose.yml is located)
    docker compose up
    ```
 
@@ -71,14 +72,22 @@ Complex integration testing was intentionally left out to contain project scope,
 
 ### Shutting Down the Application
 
+**Important:** Run these commands from the same directory where you ran `docker compose up` (the project root directory containing `docker-compose.yml`).
+
 To stop all services:
 ```bash
-# In a separate terminal from where you ran docker compose up
+# Navigate to the project directory first
+cd /path/to/your/qtip/project
+
+# Then stop the services
 docker compose down
 ```
 
 To completely stop all services **and clear all data** (including the PostgreSQL database):
 ```bash
+# Navigate to the project directory first
+cd /path/to/your/qtip/project
+
 # Stop and remove containers
 docker compose down
 
