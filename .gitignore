@@ -5,3 +5,18 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 .vscode/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+*.AssemblyAttributes.cs
+
+# NuGet
+**/project.assets.json
+**/project.packagespec.json
+*.nuget.cache
+*.nuget.g.props
+*.nuget.g.targets
+*.nuget.dgspec.json
+rider.project.model.nuget.info
+rider.project.restore.info
